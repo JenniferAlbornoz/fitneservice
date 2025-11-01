@@ -1,5 +1,9 @@
 package com.proyecto.fitneservice.ui.screens
 
+import kotlinx.coroutines.flow.first
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,8 +27,6 @@ import androidx.navigation.NavController
 import com.proyecto.fitneservice.R
 import com.proyecto.fitneservice.data.UserPreferences
 import com.proyecto.fitneservice.ui.navigation.NavRoute
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Composable
@@ -34,10 +36,11 @@ fun RegisterScreen(navController: NavController) {
     var password by remember { mutableStateOf(TextFieldValue("")) }
     var confirmPassword by remember { mutableStateOf(TextFieldValue("")) }
     var errorMessage by remember { mutableStateOf("") }
-    var showSuccessPopup by remember { mutableStateOf(false) } // ✅ Estado del popup
+    var showSuccessPopup by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val userPrefs = remember { UserPreferences(context) }
+    val scope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -48,15 +51,34 @@ fun RegisterScreen(navController: NavController) {
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(60.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
-            // 🔹 Título principal
-            Text(
-                text = "Crear Una Cuenta",
-                color = Color(0xFF0DF20D),
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold
-            )
+            // 🔹 Flecha verde para volver (centrado)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                // Flecha alineada a la izquierda
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Volver",
+                    tint = Color(0xFF0DF20D),
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .size(28.dp)
+                        .clickable { navController.navigate(NavRoute.Login.route) }
+                )
+
+                // Título centrado
+                Text(
+                    text = "Crear Una Cuenta",
+                    color = Color(0xFF0DF20D),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
             Spacer(modifier = Modifier.height(50.dp))
 
@@ -70,15 +92,17 @@ fun RegisterScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(70.dp))
 
-            // 🟣 Fondo morado
+            // 🟣 Fondo morado (ancho completo)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color(0xFFB3A0FF))
-                    .padding(horizontal = 24.dp, vertical = 24.dp)
+                    .padding(top = 24.dp, bottom = 24.dp)
             ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     OutlinedTextField(
@@ -130,7 +154,6 @@ fun RegisterScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 🔸 Términos de uso
             Text(
                 text = "Al continuar, aceptas los Términos de uso y la\nPolítica de privacidad.",
                 color = Color(0xFF0DF20D),
@@ -140,23 +163,32 @@ fun RegisterScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 🔹 Botón principal con validaciones
             Button(
                 onClick = {
-                    when {
-                        email.text.isBlank() || password.text.isBlank() || confirmPassword.text.isBlank() -> {
-                            errorMessage = "Por favor, completa todos los campos."
-                        }
-                        password.text != confirmPassword.text -> {
-                            errorMessage = "Las contraseñas no coinciden."
-                        }
-                        else -> {
-                            errorMessage = ""
-                            // ✅ Guardar usuario en DataStore
-                            CoroutineScope(Dispatchers.IO).launch {
-                                userPrefs.saveCredentials(email.text, password.text)
+                    scope.launch {
+                        val storedData = userPrefs.getCredentials.first()
+                        val storedEmail = storedData.first
+
+                        when {
+                            email.text.isBlank() || password.text.isBlank() || confirmPassword.text.isBlank() -> {
+                                errorMessage = "Por favor, completa todos los campos."
                             }
-                            showSuccessPopup = true
+                            password.text != confirmPassword.text -> {
+                                errorMessage = "Las contraseñas no coinciden."
+                            }
+                            storedEmail == email.text -> {
+                                errorMessage = "Este correo ya está registrado."
+                            }
+                            else -> {
+                                // Limpiar datos previos (nuevo usuario)
+                                userPrefs.clearUserData()
+
+                                // Guardar nuevo usuario
+                                userPrefs.saveCredentials(email.text, password.text)
+
+                                errorMessage = ""
+                                showSuccessPopup = true
+                            }
                         }
                     }
                 },
@@ -174,7 +206,6 @@ fun RegisterScreen(navController: NavController) {
                 )
             }
 
-            // 🔴 Mensaje de error (si lo hay)
             if (errorMessage.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
@@ -187,7 +218,6 @@ fun RegisterScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 🟣 Iconos de redes sociales
             Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                 Surface(
                     shape = CircleShape,
@@ -216,13 +246,8 @@ fun RegisterScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 🔹 Enlace inferior
             Row {
-                Text(
-                    text = "¿Ya tienes una cuenta? ",
-                    color = Color.White,
-                    fontSize = 14.sp
-                )
+                Text(text = "¿Ya tienes una cuenta? ", color = Color.White, fontSize = 14.sp)
                 Text(
                     text = "Inicia sesión",
                     color = Color(0xFF0DF20D),
@@ -235,7 +260,6 @@ fun RegisterScreen(navController: NavController) {
             }
         }
 
-        // 🟢 Popup de confirmación
         if (showSuccessPopup) {
             AlertDialog(
                 onDismissRequest = { showSuccessPopup = false },

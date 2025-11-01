@@ -2,9 +2,7 @@ package com.proyecto.fitneservice.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -17,16 +15,28 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.proyecto.fitneservice.data.UserPreferences
 import com.proyecto.fitneservice.ui.navigation.NavRoute
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun HomeWelcomeScreen(navController: NavController) {
+
     val context = LocalContext.current
     val userPrefs = remember { UserPreferences(context) }
-    val userData by userPrefs.getUserData.collectAsState(initial = Triple("", "", ""))
-    val email = userData.first.takeIf { it.isNotBlank() } ?: "usuario"
+
+    // Estados para los datos del usuario
+    var nombre by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+
+    // Cargar los datos desde DataStore
+    LaunchedEffect(Unit) {
+        userPrefs.getUserData.collectLatest { (storedNombre, _, storedEmail) ->
+            nombre = storedNombre
+            email = storedEmail
+        }
+    }
+
+    // Mostrar nombre si existe, si no, mostrar correo
+    val saludo = if (nombre.isNotBlank()) nombre else email
 
     Box(
         modifier = Modifier
@@ -38,9 +48,9 @@ fun HomeWelcomeScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // 🔹 Mensaje de bienvenida
+            // 🔹 Mensaje de bienvenida dinámico
             Text(
-                text = "¡Hola, $email!",
+                text = "¡Hola, $saludo!",
                 color = Color(0xFF0DF20D),
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold
@@ -59,22 +69,18 @@ fun HomeWelcomeScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 🔹 Botón “Comenzar”
+            // 🔘 Botón para continuar
             Button(
-                onClick = {
-                    navController.navigate(NavRoute.Home.route) {
-                        popUpTo(NavRoute.HomeWelcome.route) { inclusive = true }
-                    }
-                },
+                onClick = { navController.navigate(NavRoute.Home.route) },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3C3B3B)),
+                shape = RoundedCornerShape(20.dp),
                 modifier = Modifier
-                    .width(220.dp)
+                    .width(200.dp)
                     .height(50.dp)
             ) {
                 Text(
                     text = "Comenzar",
                     color = Color.White,
-                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
             }

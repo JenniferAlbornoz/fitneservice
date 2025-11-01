@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.proyecto.fitneservice.data.UserPreferences
 import com.proyecto.fitneservice.ui.navigation.NavRoute
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(navController: NavController) {
@@ -27,12 +28,11 @@ fun LoginScreen(navController: NavController) {
     val userPrefs = remember { UserPreferences(context) }
     val userData by userPrefs.getCredentials.collectAsState(initial = Pair("", ""))
 
-    // Campos
     var email by remember { mutableStateOf(TextFieldValue("")) }
     var password by remember { mutableStateOf(TextFieldValue("")) }
-
-    // Mensaje de error
     var errorMessage by remember { mutableStateOf("") }
+
+    val scope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -40,12 +40,11 @@ fun LoginScreen(navController: NavController) {
             .background(Color(0xFF232323))
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // ---------- Encabezado ----------
-            Spacer(modifier = Modifier.height(100.dp))
+            Spacer(modifier = Modifier.height(80.dp))
             Text(
                 text = "Iniciar Sesión",
                 color = Color(0xFF0DF20D),
@@ -53,23 +52,25 @@ fun LoginScreen(navController: NavController) {
                 fontWeight = FontWeight.Bold
             )
 
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = "Bienvenido",
                 color = Color.White,
-                fontSize = 22.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = "¡Bienvenido de vuelta a FitneService!\nNos alegra verte nuevamente. " +
                         "Inicia sesión para seguir avanzando en tus objetivos de salud y bienestar.\n" +
-                        "¡Tu progreso te está esperando!"+ "\n",
+                        "¡Tu progreso te está esperando!",
                 color = Color.White,
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 25.dp)
             )
+
+            Spacer(modifier = Modifier.height(30.dp))
 
             // ---------- Franja morada (formulario) ----------
             Box(
@@ -110,12 +111,15 @@ fun LoginScreen(navController: NavController) {
                         )
                     )
 
+                    // ✅ Texto visible y clickeable
                     Text(
-                        text = "¿Has olvidado tu contraseña?",
-                        color = Color(0xFFB3A0FF),
+                        text = "¿Olvidaste tu contraseña?",
+                        color = Color(0xFF232323),
                         fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
                         modifier = Modifier
                             .align(Alignment.End)
+                            .padding(top = 6.dp, end = 6.dp)
                             .clickable {
                                 navController.navigate(NavRoute.ForgotPassword.route)
                             }
@@ -132,11 +136,14 @@ fun LoginScreen(navController: NavController) {
                     val storedPassword = userData.second
 
                     when {
-                        storedEmail.isNullOrEmpty() -> {
+                        storedEmail.isEmpty() || storedPassword.isEmpty() -> {
                             errorMessage = "No hay ninguna cuenta registrada."
                         }
-                        email.text != storedEmail || password.text != storedPassword -> {
-                            errorMessage = "Correo o contraseña incorrectos."
+                        email.text != storedEmail -> {
+                            errorMessage = "Correo no registrado."
+                        }
+                        password.text != storedPassword -> {
+                            errorMessage = "Contraseña incorrecta."
                         }
                         else -> {
                             errorMessage = ""
@@ -147,7 +154,7 @@ fun LoginScreen(navController: NavController) {
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3C3B3B)),
                 shape = RoundedCornerShape(20.dp),
                 modifier = Modifier
-                    .width(220.dp)
+                    .width(230.dp)
                     .height(50.dp)
             ) {
                 Text(
@@ -192,4 +199,3 @@ fun LoginScreen(navController: NavController) {
         }
     }
 }
-
