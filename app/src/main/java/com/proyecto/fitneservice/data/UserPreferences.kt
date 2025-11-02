@@ -1,3 +1,5 @@
+// app/src/main/java/com/proyecto/fitneservice/data/UserPreferences.kt
+
 package com.proyecto.fitneservice.data
 
 import android.content.Context
@@ -56,6 +58,13 @@ class UserPreferences(private val context: Context) {
     suspend fun saveGender(gender: String) {
         context.userDataStore.edit { prefs ->
             prefs[GENDER_KEY] = gender
+        }
+    }
+
+    // ✅ Función para actualizar solo la contraseña (Fix ResetPasswordScreen)
+    suspend fun updatePassword(password: String) {
+        context.userDataStore.edit { prefs ->
+            prefs[PASSWORD_KEY] = password
         }
     }
 

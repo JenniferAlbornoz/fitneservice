@@ -46,10 +46,12 @@ fun PerfilScreen() {
 
     // ✅ Cargar los datos del usuario actual (incluido el género)
     LaunchedEffect(Unit) {
-        userPrefs.getUserData.collectLatest { (storedNombre, storedBio, storedEmail) ->
-            nombre = storedNombre
-            bio = storedBio
-            email = storedEmail
+        // Corregido: Se accede a los valores del Map por clave (Fixed Destructuring error)
+        userPrefs.getUserData.collectLatest { userDataMap ->
+            nombre = userDataMap["nombre"] ?: ""
+            bio = userDataMap["bio"] ?: ""
+            email = userDataMap["email"] ?: ""
+            selectedGender = userDataMap["gender"] ?: "Hombre" // Default value
         }
 
         userPrefs.getGender.collectLatest { gender ->

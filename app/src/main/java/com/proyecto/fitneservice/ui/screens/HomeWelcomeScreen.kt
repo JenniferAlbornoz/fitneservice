@@ -16,6 +16,7 @@ import androidx.navigation.NavController
 import com.proyecto.fitneservice.data.UserPreferences
 import com.proyecto.fitneservice.ui.navigation.NavRoute
 import kotlinx.coroutines.flow.collectLatest
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 @Composable
 fun HomeWelcomeScreen(navController: NavController) {
@@ -27,12 +28,35 @@ fun HomeWelcomeScreen(navController: NavController) {
     var nombre by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
 
-    // Cargar los datos desde DataStore
-    LaunchedEffect(Unit) {
-        userPrefs.getUserData.collectLatest { (storedNombre, _, storedEmail) ->
-            nombre = storedNombre
-            email = storedEmail
+// app/src/main/java/com/proyecto/fitneservice/ui/screens/HomeWelcomeScreen.kt
+
+// ... (imports)
+
+    @Composable
+    fun HomeWelcomeScreen(navController: NavController) {
+
+        val context = LocalContext.current
+        val userPrefs = remember { UserPreferences(context) }
+
+        // Estados para los datos del usuario
+        var nombre by remember { mutableStateOf("") }
+        var email by remember { mutableStateOf("") }
+
+        // Cargar los datos desde DataStore
+        LaunchedEffect(Unit) {
+            // Corregido: Se accede a los valores del Map por clave
+            userPrefs.getUserData.collectLatest { userDataMap ->
+                nombre = userDataMap["nombre"] ?: ""
+                email = userDataMap["email"] ?: ""
+            }
         }
+
+        // Mostrar nombre si existe, si no, mostrar correo
+        // Se usa el email si el nombre está en blanco
+        val saludo = if (nombre.isNotBlank()) nombre else email.takeIf { it.isNotBlank() } ?: "usuario"
+
+        // ... (resto de la función sin cambios)
+
     }
 
     // Mostrar nombre si existe, si no, mostrar correo
