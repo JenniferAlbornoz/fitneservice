@@ -17,32 +17,36 @@ import androidx.navigation.NavController
 import com.proyecto.fitneservice.R
 import com.proyecto.fitneservice.ui.navigation.NavRoute
 import androidx.compose.foundation.shape.RoundedCornerShape
+
 @Composable
 fun PasswordResetSuccessScreen(navController: NavController) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF232323)),
+            .background(Color(0xFF232323)), // Fondo oscuro (BackgroundDark)
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // Título: Contraseña Restablecida (Verde neón)
             Text(
                 text = "Contraseña Restablecida",
-                color = Color(0xFF0DF20D),
+                color = Color(0xFF0DF20D), // PrimaryColor
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold
             )
 
             Spacer(modifier = Modifier.height(40.dp))
 
+            // Icono de Check (Confirmación)
             Image(
-                painter = painterResource(id = R.drawable.ic_check), // agrega tu ícono ✅
+                painter = painterResource(id = R.drawable.ic_check),
                 contentDescription = "Check",
                 modifier = Modifier.size(120.dp)
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
+            // Descripción
             Text(
                 text = "Tu contraseña se ha restablecido correctamente.\nHaz clic abajo para iniciar sesión automáticamente.",
                 color = Color.White,
@@ -53,8 +57,10 @@ fun PasswordResetSuccessScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(40.dp))
 
+            // Botón Continue (Fondo ButtonColor)
             Button(
                 onClick = {
+                    // Navega a Login y elimina esta pantalla del back stack
                     navController.navigate(NavRoute.Login.route) {
                         popUpTo(NavRoute.PasswordResetSuccess.route) { inclusive = true }
                     }
