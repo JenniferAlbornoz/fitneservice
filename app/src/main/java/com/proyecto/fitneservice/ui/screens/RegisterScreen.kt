@@ -169,9 +169,23 @@ fun RegisterScreen(navController: NavController) {
                         val storedData = userPrefs.getCredentials.first()
                         val storedEmail = storedData.first
 
+                        // 🔍 Validaciones personalizadas
+                        val isEmailValid = email.text.contains("@") &&
+                                (email.text.endsWith(".cl") || email.text.endsWith(".com"))
+
+                        // Verifica que tenga al menos una letra Y al menos un número
+                        val isPasswordAlphanumeric = password.text.any { it.isLetter() } &&
+                                password.text.any { it.isDigit() }
+
                         when {
                             email.text.isBlank() || password.text.isBlank() || confirmPassword.text.isBlank() -> {
                                 errorMessage = "Por favor, completa todos los campos."
+                            }
+                            !isEmailValid -> {
+                                errorMessage = "El correo debe contener '@' y terminar en '.cl' o '.com'."
+                            }
+                            !isPasswordAlphanumeric -> {
+                                errorMessage = "La contraseña debe ser alfanumérica (letras y números)."
                             }
                             password.text != confirmPassword.text -> {
                                 errorMessage = "Las contraseñas no coinciden."
@@ -267,7 +281,8 @@ fun RegisterScreen(navController: NavController) {
                     TextButton(
                         onClick = {
                             showSuccessPopup = false
-                            navController.navigate(NavRoute.ProfileSetup.route) {
+                            // CORRECCIÓN: Ahora navega directo al Home
+                            navController.navigate(NavRoute.Home.route) {
                                 popUpTo(NavRoute.Register.route) { inclusive = true }
                             }
                         }

@@ -20,12 +20,9 @@ fun HomeScreen(navController: NavHostController) {
     var selectedTab by remember { mutableStateOf(0) }
 
     // 🟣 Títulos e íconos del menú inferior
-    val tabs = listOf("Noticias", "Comunidad", "Actividad", "Progreso", "Perfil")
+    val tabs = listOf("Noticias", "Perfil")
     val icons = listOf(
         R.drawable.ic_noticias,   // Noticias
-        R.drawable.ic_comunidad,  // Comunidad
-        R.drawable.ic_actividad,  // Actividad
-        R.drawable.ic_progreso,   // Progreso
         R.drawable.ic_perfil      // Perfil
     )
 
@@ -68,10 +65,7 @@ fun HomeScreen(navController: NavHostController) {
         ) {
             when (selectedTab) {
                 0 -> NoticiasScreen()
-                1 -> ComunidadScreen()
-                2 -> ActividadScreen()
-                3 -> ProgresoScreen()
-                4 -> PerfilScreen()
+                1 -> PerfilScreen()
             }
         }
     }

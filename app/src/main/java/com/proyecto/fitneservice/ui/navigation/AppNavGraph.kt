@@ -40,16 +40,6 @@ fun AppNavGraph(navController: NavHostController) {
             RegisterScreen(navController = navController)
         }
 
-        // 🟠 Configuración de perfil
-        composable(route = NavRoute.ProfileSetup.route) {
-            ProfileSetupScreen(navController = navController)
-        }
-
-        // ⚪ Bienvenida posterior al registro
-        composable(route = NavRoute.HomeWelcome.route) {
-            HomeWelcomeScreen(navController = navController)
-        }
-
         // 🏠 Home con bottom bar
         composable(route = NavRoute.Home.route) {
             HomeScreen(navController = navController)

@@ -1,6 +1,10 @@
 package com.proyecto.fitneservice.ui.screens
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -24,12 +28,17 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import coil.compose.rememberAsyncImagePainter
 import com.proyecto.fitneservice.R
 import com.proyecto.fitneservice.data.UserPreferences
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun PerfilScreen() {
@@ -38,42 +47,82 @@ fun PerfilScreen() {
     val userPrefs = remember { UserPreferences(context) }
     val scope = rememberCoroutineScope()
 
-    // Estados locales
+    // Estados de datos
     var nombre by remember { mutableStateOf("") }
     var bio by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
-    var selectedGender by remember { mutableStateOf("") }
+    var selectedGender by remember { mutableStateOf("Hombre") }
 
-    // ✅ Cargar los datos del usuario actual (incluido el género)
+    // Estados de imagen
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    var showImageSourceDialog by remember { mutableStateOf(false) }
+
+    // Cargar datos al iniciar la pantalla
     LaunchedEffect(Unit) {
-        // Corregido: Se accede a los valores del Map por clave (Fixed Destructuring error)
         userPrefs.getUserData.collectLatest { userDataMap ->
             nombre = userDataMap["nombre"] ?: ""
             bio = userDataMap["bio"] ?: ""
             email = userDataMap["email"] ?: ""
-            selectedGender = userDataMap["gender"] ?: "Hombre" // Default value
-        }
+            selectedGender = userDataMap["gender"] ?: "Hombre"
 
-        userPrefs.getGender.collectLatest { gender ->
-            selectedGender = gender
+            // Cargar foto si existe
+            val photoStr = userDataMap["photo"]
+            if (!photoStr.isNullOrEmpty()) {
+                imageUri = Uri.parse(photoStr)
+            }
         }
     }
 
-    // Imagen
-    val imageUri = remember { mutableStateOf<Uri?>(null) }
-    val launcher = rememberLauncherForActivityResult(
+    // --------------------------------------------------------
+    // 🔗 CONFIGURACIÓN DE LA CÁMARA Y GALERÍA
+    // --------------------------------------------------------
+
+    // 1. Launcher para obtener imagen de GALERÍA
+    val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? -> imageUri.value = uri }
+    ) { uri: Uri? ->
+        uri?.let {
+            imageUri = it
+            // Auto-guardar la foto de galería
+            scope.launch { userPrefs.savePhoto(it.toString()) }
+        }
+    }
 
-    // Popup animado
-    var showPopup by remember { mutableStateOf(false) }
+    // 2. Launcher para tomar foto con CÁMARA
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && tempPhotoUri != null) {
+            imageUri = tempPhotoUri
+            // Auto-guardar la foto de cámara
+            scope.launch { userPrefs.savePhoto(tempPhotoUri.toString()) }
+        }
+    }
 
+    // 3. 🛡️ Launcher para pedir PERMISO DE CÁMARA (Evita el crash)
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Si el usuario dice SÍ, lanzamos la cámara
+            val uri = createTempPictureUri(context)
+            tempPhotoUri = uri
+            cameraLauncher.launch(uri)
+        } else {
+            Toast.makeText(context, "Permiso de cámara denegado", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // --------------------------------------------------------
+    // UI
+    // --------------------------------------------------------
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
     ) {
-        // 🔹 Barra superior morada (ocupa todo el ancho)
+        // Header
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -81,12 +130,7 @@ fun PerfilScreen() {
                 .height(50.dp),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "PERFIL",
-                color = Color.Black,
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
-            )
+            Text("PERFIL", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 18.sp)
         }
 
         Column(
@@ -95,9 +139,9 @@ fun PerfilScreen() {
                 .fillMaxSize()
                 .padding(horizontal = 24.dp)
         ) {
-            Spacer(modifier = Modifier.height(110.dp)) // Espacio debajo de la barra
+            Spacer(modifier = Modifier.height(110.dp))
 
-            // 🔹 Foto + Nombre
+            // 📷 Foto de perfil
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -105,8 +149,8 @@ fun PerfilScreen() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Image(
-                    painter = if (imageUri.value != null)
-                        rememberAsyncImagePainter(imageUri.value)
+                    painter = if (imageUri != null)
+                        rememberAsyncImagePainter(imageUri)
                     else
                         painterResource(id = R.drawable.ic_fotoperfil),
                     contentDescription = "Foto de perfil",
@@ -114,7 +158,7 @@ fun PerfilScreen() {
                         .size(90.dp)
                         .clip(CircleShape)
                         .background(Color.LightGray)
-                        .clickable { launcher.launch("image/*") },
+                        .clickable { showImageSourceDialog = true },
                     contentScale = ContentScale.Crop
                 )
 
@@ -122,9 +166,13 @@ fun PerfilScreen() {
 
                 Column(Modifier.weight(1f)) {
                     Text("NOMBRE", color = Color.Gray, fontSize = 12.sp)
+                    // Auto-guardado al escribir
                     OutlinedTextField(
                         value = nombre,
-                        onValueChange = { nombre = it },
+                        onValueChange = {
+                            nombre = it
+                            scope.launch { userPrefs.saveName(it) }
+                        },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -137,10 +185,15 @@ fun PerfilScreen() {
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 🔹 Biografía
+            // 📝 Biografía (Auto-guardado)
             OutlinedTextField(
                 value = bio,
-                onValueChange = { if (it.length <= 100) bio = it },
+                onValueChange = {
+                    if (it.length <= 100) {
+                        bio = it
+                        scope.launch { userPrefs.saveBio(it) }
+                    }
+                },
                 label = { Text("Biografía") },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -151,26 +204,18 @@ fun PerfilScreen() {
                     unfocusedContainerColor = Color.White
                 )
             )
-
             Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = "${100 - bio.length} Caracteres Restantes",
-                color = Color.Gray,
-                fontSize = 12.sp
-            )
+            Text("${100 - bio.length} Caracteres Restantes", color = Color.Gray, fontSize = 12.sp)
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 🔹 Género (ahora persistente y guardado correctamente)
+            // 🚻 Género (Auto-guardado)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 listOf("Mujer", "Hombre", "Prefiero No Decirlo").forEach { gender ->
                     Button(
                         onClick = {
                             selectedGender = gender
-                            // Guarda automáticamente al seleccionarlo
-                            scope.launch {
-                                userPrefs.saveGender(gender)
-                            }
+                            scope.launch { userPrefs.saveGender(gender) }
                         },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (selectedGender == gender) Color.Black else Color.LightGray,
@@ -186,12 +231,15 @@ fun PerfilScreen() {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 🔹 Email
+            // 📧 Email (Auto-guardado)
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text("EMAIL", color = Color.Gray, fontSize = 12.sp)
                 OutlinedTextField(
                     value = email,
-                    onValueChange = { email = it },
+                    onValueChange = {
+                        email = it
+                        scope.launch { userPrefs.saveEmail(it) }
+                    },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -201,53 +249,73 @@ fun PerfilScreen() {
                 )
             }
 
+            // Ya no es necesario el botón "Guardar Cambios" obligatorio,
+            // pero podemos dejarlo como confirmación visual.
             Spacer(modifier = Modifier.height(24.dp))
-
-            // 🔹 Botón Guardar Cambios
             Button(
-                onClick = {
-                    scope.launch {
-                        // Guarda todos los datos, incluyendo el género seleccionado
-                        userPrefs.saveProfile(nombre, bio, selectedGender)
-                        userPrefs.saveEmail(email)
-                        showPopup = true
-                        delay(1800)
-                        showPopup = false
-                    }
-                },
+                onClick = { /* Acción visual opcional o Toast de "Todo al día" */ },
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                 shape = RoundedCornerShape(20.dp),
-                modifier = Modifier
-                    .width(220.dp)
-                    .height(50.dp)
+                modifier = Modifier.width(220.dp).height(50.dp)
             ) {
-                Text(
-                    "Guardar Cambios",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            // 🔹 Popup animado
-            AnimatedVisibility(
-                visible = showPopup,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .padding(top = 30.dp)
-                        .background(Color(0xFF0DF20D), shape = RoundedCornerShape(12.dp))
-                        .padding(horizontal = 24.dp, vertical = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "✅ Cambios guardados correctamente",
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Text("Datos Actualizados", color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
+
+        // 🔘 DIÁLOGO DE SELECCIÓN
+        if (showImageSourceDialog) {
+            AlertDialog(
+                onDismissRequest = { showImageSourceDialog = false },
+                title = { Text("Cambiar Foto de Perfil") },
+                text = { Text("Elige una opción:") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showImageSourceDialog = false
+
+                        // 🔍 Verificar Permiso antes de abrir cámara
+                        val permissionCheck = ContextCompat.checkSelfPermission(
+                            context, Manifest.permission.CAMERA
+                        )
+                        if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
+                            val uri = createTempPictureUri(context)
+                            tempPhotoUri = uri
+                            cameraLauncher.launch(uri)
+                        } else {
+                            // Solicitar permiso
+                            permissionLauncher.launch(Manifest.permission.CAMERA)
+                        }
+                    }) {
+                        Text("📷 Cámara")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showImageSourceDialog = false
+                        galleryLauncher.launch("image/*")
+                    }) {
+                        Text("🖼️ Galería")
+                    }
+                }
+            )
+        }
     }
+}
+
+// Función auxiliar para crear la URI temporal
+fun createTempPictureUri(context: Context): Uri {
+    val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+    val imageFileName = "JPEG_" + timeStamp + "_"
+    val storageDir = context.getExternalFilesDir(null)
+
+    val imageFile = File.createTempFile(
+        imageFileName,
+        ".jpg",
+        storageDir
+    )
+
+    return FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.provider",
+        imageFile
+    )
 }
