@@ -2,7 +2,7 @@
 
 **Aplicación de Bienestar y Fitness Personal**
 
-Este proyecto corresponde a la segunda evaluación parcial de la asignatura de Programación de Aplicaciones Móviles. Fue desarrollado implementando una arquitectura moderna nativa en Android utilizando **Kotlin** y **Jetpack Compose**.
+Este proyecto corresponde a la evaluación parcial de la asignatura de Programación de Aplicaciones Móviles. Fue desarrollado implementando una arquitectura moderna nativa en Android utilizando **Kotlin** y **Jetpack Compose**.
 
 ---
 
@@ -98,3 +98,4 @@ com.proyecto.fitneservice
 ├── viewmodel
 │   └── UserViewModel.kt     # Lógica de negocio
 └── MainActivity.kt          # Punto de entrada
+
