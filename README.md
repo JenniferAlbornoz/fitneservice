@@ -2,7 +2,7 @@
 
 **Aplicación de Bienestar y Fitness Personal**
 
-Este proyecto corresponde a la evaluación parcial de la asignatura de Programación de Aplicaciones Móviles. Fue desarrollado implementando una arquitectura moderna nativa en Android utilizando **Kotlin** y **Jetpack Compose**.
+Este proyecto corresponde a la  evaluación parcial de la asignatura de Programación de Aplicaciones Móviles. Fue desarrollado implementando una arquitectura moderna nativa en Android utilizando **Kotlin** y **Jetpack Compose**.
 
 ---
 
@@ -23,35 +23,49 @@ El proyecto FitneService fue desarrollado bajo el enfoque **MVVM (Model–View�
 
 ### Componentes de la Arquitectura
 * **Vista (View):** Pantallas desarrolladas en `ui/screens` utilizando `@Composable` y `remember` para manejar el estado de la interfaz de forma reactiva.
-* **Modelo y Repositorio (Data):**
-    * `UserPreferences.kt` (ubicado en `data/`): Implementa **DataStore Preferences**, gestionando el almacenamiento persistente de credenciales, perfil y configuración (Nombre, Biografía, Género, Correo).
+* **Modelo y Datos (Data):**
+    * **Persistencia Local:** `UserPreferences.kt` implementa **DataStore Preferences** para guardar credenciales y perfil (Nombre, Biografía, Género, Correo).
+    * **Red (Network):** `NewsApiService.kt` define la interfaz para el consumo de datos externos.
 * **ViewModel:**
-    * `UserViewModel.kt`: Se encarga de delegar las operaciones de DataStore y reforzar la arquitectura MVVM. Aunque la gestión de estado de Compose es potente, esta clase asegura la separación de lógica y UI.
+    * `UserViewModel.kt` y `NoticiasViewModel.kt`: Separan la lógica de negocio de la interfaz, gestionando estados de carga (`isLoading`), éxito y error.
+
+---
+
+## 🌐 Integración de API (Servicios Externos)
+
+La aplicación implementa el consumo de una API REST para ofrecer contenido dinámico relacionado con la salud.
+
+* **API Proveedor:** [NewsAPI](https://newsapi.org/)
+* **Endpoint:** `v2/top-headlines`
+* **Configuración:**
+    * Categoría: **Health** (Salud y Bienestar).
+    * Librería de Cliente HTTP: **Retrofit 2.9.0**.
+    * Conversor JSON: **GSON**.
+* **Manejo de Asincronía:** Uso de **Kotlin Coroutines** (`viewModelScope.launch`) para realizar peticiones en segundo plano sin bloquear el hilo principal (UI).
 
 ---
 
 ## 🚀 Funcionalidades Implementadas
 
-La aplicación cuenta con un flujo simplificado y eficiente, destacando las siguientes características:
+La aplicación cuenta con un flujo eficiente y validado:
 
 * **🎨 Diseño Visual (Material 3):** Paleta de colores personalizada (Verde, Negro, Blanco y Lila).
-* **✅ Formularios Validados:** Comprobación en tiempo real de campos vacíos, formato de correo válido y coincidencia de contraseñas.
-* **💾 Almacenamiento Local:** Persistencia de datos mediante **DataStore**.
-* **🖼️ Recursos Nativos:** Selección de imagen de perfil directamente desde la galería del dispositivo.
-* **🔄 Navegación Funcional:** Definida con `NavController` y `NavRoutes`.
-    * Flujo: *Login → Registro → Perfil → Home (Actividad/Perfil) → Contraseña Olvidada → Restablecer.*
+* **✅ Formularios Validados:** Comprobación en tiempo real de campos vacíos, formato de correo y contraseñas.
+* **💾 Almacenamiento Local:** Persistencia de sesión y perfil mediante **DataStore**.
+* **📰 Noticias en Tiempo Real:** Visualización de titulares de salud obtenidos desde internet.
+* **🔄 Navegación Funcional:** Definida con `NavController`. Flujo: *Login → Registro → Perfil → Home → Contraseña Olvidada.*
 
 ### ✨ Animaciones y Feedback (Requisito Clave)
-Se implementaron animaciones y alertas visuales para mejorar la UX:
-1.  **Pop-up Animado:** Se despliega al completar un registro exitoso.
-2.  **Confirmación de Cambios:** Alerta visual al guardar cambios en el perfil.
-3.  **Alerta Animada:** Feedback visual en el flujo de restablecimiento de contraseña.
+Se implementaron animaciones para mejorar la UX:
+1.  **Pop-up Animado:** Feedback visual al completar un registro exitoso.
+2.  **Confirmación de Cambios:** Alerta al guardar cambios en el perfil.
+3.  **Transiciones:** Navegación fluida entre pantallas.
 
 ---
 
 ## 🧪 Guía de Prueba Rápida (Para el Docente)
 
-Para verificar el funcionamiento de los requisitos de **Gestión de Estado**, **Persistencia** y **Animaciones**, utilice los siguientes datos:
+Para verificar **Gestión de Estado**, **Persistencia**, **API** y **Animaciones**:
 
 ### 🔐 Credenciales de Acceso
 * **Email:** `je.albornoz@duocuc.cl`
@@ -59,17 +73,13 @@ Para verificar el funcionamiento de los requisitos de **Gestión de Estado**, **
 
 ### 🔄 Flujo de Verificación Sugerido
 
-1.  **Validar Login:** Ingrese con las credenciales registradas para probar la persistencia y autenticación.
-2.  **Prueba de Registro (Animación):** Intente registrar un nuevo usuario para visualizar el **popup de éxito animado**.
-3.  **Restablecer Contraseña:**
-    * Vaya a "Olvidé mi contraseña".
-    * Ingrese una nueva clave y confirme.
-    * Verifique el popup: *"Contraseña actualizada correctamente"*.
-4.  **Editar Perfil (Persistencia):**
-    * Navegue a la pestaña **Perfil** en el menú inferior.
-    * Edite el Nombre, Biografía, Correo o Género.
+1.  **Validar Login:** Ingrese con las credenciales para probar DataStore y validación.
+2.  **Prueba de Registro (Animación):** Registre un usuario para ver el **popup de éxito**.
+3.  **API de Noticias:** Al ingresar al Home, la aplicación realizará una petición HTTP (GET) para traer noticias de salud (verificar en Logcat o pantalla si está activa).
+4.  **Editar Perfil:**
+    * Navegue a la pestaña **Perfil**.
+    * Edite el Nombre o Biografía y guarde.
     * Observe el popup de confirmación.
-5.  **Navegación:** Utilice las flechas verdes (`ArrowBack`) para verificar el correcto retorno en la pila de navegación.
 
 ---
 
@@ -77,25 +87,22 @@ Para verificar el funcionamiento de los requisitos de **Gestión de Estado**, **
 
 * **Lenguaje:** [Kotlin](https://kotlinlang.org/) (100%)
 * **UI Toolkit:** [Jetpack Compose](https://developer.android.com/jetbrains/compose)
+* **Red:** Retrofit + GSON
 * **Persistencia:** Jetpack DataStore
-* **Navegación:** Navigation Compose
-* **IDE:** Android Studio Ladybug o superior.
+* **Imágenes:** Coil (Carga asíncrona de imágenes y GIFs)
 
 ## 📂 Estructura del Proyecto
-
-El código está organizado modularmente para facilitar la evaluación:
 
 ```text
 com.proyecto.fitneservice
 ├── data
-│   ├── UserPreferences.kt   # Gestión de DataStore (Persistencia)
-│   └── ...
+│   ├── network              # Configuración API (NewsApiService)
+│   ├── model                # Data Classes (NewsResponse, Article)
+│   └── UserPreferences.kt   # Persistencia DataStore
 ├── ui
-│   ├── components           # Componentes UI reutilizables
-│   ├── navigation           # Configuración de NavRoutes y NavGraph
-│   ├── screens              # Pantallas (Login, Actividad, Perfil, etc.)
-│   └── theme                # Tema Material 3 (Colores, Tipografía)
+│   ├── screens              # Pantallas (Login, Home, Perfil...)
+│   └── navigation           # NavGraph y Rutas
 ├── viewmodel
-│   └── UserViewModel.kt     # Lógica de negocio
+│   ├── NoticiasViewModel.kt # Lógica de conexión a API
+│   └── UserViewModel.kt     # Lógica de usuario
 └── MainActivity.kt          # Punto de entrada
-
