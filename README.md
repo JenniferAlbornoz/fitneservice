@@ -13,7 +13,7 @@ Este proyecto corresponde a la  evaluación parcial de la asignatura de Programa
 | **Institución** | Duoc UC, Sede Antonio Varas |
 | **Carrera** | Ingeniería en Informática, 4° Semestre |
 | **Docente a Cargo** | Diego Cares |
-| **Integrantes** | • Jennifer Albornoz<br>• Monsserratt Ampuero<br>• Benjamín Monasterio |
+| **Integrantes** | Batman• Benjamín Monasterio |
 
 ---
 
